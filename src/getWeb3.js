@@ -24,6 +24,10 @@ let getWeb3 = () => {
               netIdName = 'Sokol'
               console.log('This is Sokol', netId)
               break;
+	  case "81":
+	      netIdName = 'TestNetwork1'
+		  console.log('This is TestNetwork1', netId)
+		  break;
             default:
               netIdName = 'ERROR'
               errorMsg = messages.WRONG_NETWORK_MSG

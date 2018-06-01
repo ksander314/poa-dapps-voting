@@ -1,12 +1,12 @@
 import { addressesURL, wrongRepoAlert } from "./helpers";
-// const local = {
-//     VOTING_TO_CHANGE_KEYS_ADDRESS: '0xecdbe3937cf6ff27f70480855cfe03254f915b48',
-//     VOTING_TO_CHANGE_MIN_THRESHOLD_ADDRESS: '0x5ae30d4c8892292e0d8164f87a2e12dff9dc99e1',
-//     VOTING_TO_CHANGE_PROXY_ADDRESS: '0x6c221df3695ac13a7f9366568ec069c353d273b8',
-//     BALLOTS_STORAGE_ADDRESS: '0x5d6573e62e3688e40c1fc36e01b155fb0006f432',
-//     METADATA_ADDRESS: '0x93eba9d9de66133fcde35775e9da593edd59a4e3',
-//     POA_ADDRESS: '0xf472e0e43570b9afaab67089615080cf7c20018d',
-// }
+ const local = {
+     VOTING_TO_CHANGE_KEYS_ADDRESS: '0x6ee6e74d12376ecd4a2e8c383c4403f82c12fa4f',
+     VOTING_TO_CHANGE_MIN_THRESHOLD_ADDRESS: '0x4841efded2f4ac22486e74db880dc66e91931e29',
+     VOTING_TO_CHANGE_PROXY_ADDRESS: '0x1aab6eecebc625cf0dfcec89531ea8d818482bfa',
+     BALLOTS_STORAGE_ADDRESS: '0xdfb1f7513ec4c80a9ff91d66a9d3d81861bbbe90',
+     METADATA_ADDRESS: '0x3f7de87620847472114992f2a229328ff94299dc',
+     POA_ADDRESS: '0x8bf38d4764929064f2d4d3a56520a76ab3df415b',
+ }
 
 let SOKOL_ADDRESSES = {};
 let CORE_ADDRESSES = {};
@@ -41,6 +41,8 @@ function getAddresses(netId) {
             return SOKOL_ADDRESSES
         case '99':
             return CORE_ADDRESSES
+    case '81':
+	    return local
         default:
             return CORE_ADDRESSES
     }
