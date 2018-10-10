@@ -1,99 +1,83 @@
-import Web3 from 'web3';
-import { networkAddresses } from './addresses';
-import helpers from "./helpers";
+import Web3 from 'web3'
+import { networkAddresses } from './addresses'
+import helpers from './helpers'
 
 export default class VotingToChangeProxy {
-  async init({web3, netId}) {
-    const {VOTING_TO_CHANGE_PROXY_ADDRESS} = networkAddresses(netId);
+  async init({ web3, netId }) {
+    const { VOTING_TO_CHANGE_PROXY_ADDRESS } = networkAddresses(netId)
     console.log('VotingToChangeProxy address', VOTING_TO_CHANGE_PROXY_ADDRESS)
-    let web3_10 = new Web3(web3.currentProvider);
+    const web3_10 = new Web3(web3.currentProvider)
 
-    const branch = helpers.getBranch(netId);
+    const branch = helpers.getBranch(netId)
 
-    let votingToChangeProxyABI = await helpers.getABI(branch, 'VotingToChangeProxyAddress')
+    const votingToChangeProxyABI = await helpers.getABI(branch, 'VotingToChangeProxyAddress')
 
-    this.votingToChangeProxyInstance = new web3_10.eth.Contract(votingToChangeProxyABI, VOTING_TO_CHANGE_PROXY_ADDRESS);
-    this.gasPrice = web3_10.utils.toWei('1', 'gwei');
+    this.votingToChangeProxyInstance = new web3_10.eth.Contract(votingToChangeProxyABI, VOTING_TO_CHANGE_PROXY_ADDRESS)
+    this.gasPrice = web3_10.utils.toWei('1', 'gwei')
+    this.address = VOTING_TO_CHANGE_PROXY_ADDRESS
+    this.instance = this.votingToChangeProxyInstance
   }
 
   //setters
-  createBallotToChangeProxyAddress({startTime, endTime, proposedValue, contractType, sender, memo}) {
-    return this.votingToChangeProxyInstance.methods.createBallotToChangeProxyAddress(startTime, endTime, proposedValue, contractType, memo).send({from: sender, gasPrice: this.gasPrice})
+  createBallot({ startTime, endTime, proposedValue, contractType, memo }) {
+    if (!this.votingToChangeProxyInstance.methods.createBallot) {
+      return this.votingToChangeProxyInstance.methods
+        .createBallotToChangeProxyAddress(startTime, endTime, proposedValue, contractType, memo)
+        .encodeABI()
+    }
+    return this.votingToChangeProxyInstance.methods
+      .createBallot(startTime, endTime, contractType, memo, proposedValue)
+      .encodeABI()
   }
 
-  vote(_id, choice, sender) {
-    return this.votingToChangeProxyInstance.methods.vote(_id, choice).send({from: sender, gasPrice: this.gasPrice})
+  vote(_id, choice) {
+    return this.votingToChangeProxyInstance.methods.vote(_id, choice).encodeABI()
   }
 
-  finalize(_id, sender) {
-    return this.votingToChangeProxyInstance.methods.finalize(_id).send({from: sender, gasPrice: this.gasPrice})
+  finalize(_id) {
+    return this.votingToChangeProxyInstance.methods.finalize(_id).encodeABI()
   }
 
   //getters
-  getStartTime(_id) {
-    return this.votingToChangeProxyInstance.methods.getStartTime(_id).call();
+  doesMethodExist(methodName) {
+    if (this.votingToChangeProxyInstance.methods[methodName]) {
+      return true
+    }
+    return false
   }
 
-  getEndTime(_id) {
-    return this.votingToChangeProxyInstance.methods.getEndTime(_id).call();
+  nextBallotId() {
+    return this.votingToChangeProxyInstance.methods.nextBallotId().call()
   }
 
-  votingState(_id) {
-    return this.votingToChangeProxyInstance.methods.votingState(_id).call();
-  }
-
-  getTotalVoters(_id) {
-    return this.votingToChangeProxyInstance.methods.getTotalVoters(_id).call();
-  }
-
-  getProgress(_id) {
-    return this.votingToChangeProxyInstance.methods.getProgress(_id).call();
-  }
-
-  getIsFinalized(_id) {
-    return this.votingToChangeProxyInstance.methods.getIsFinalized(_id).call();
+  getBallotInfo(_id, _votingKey) {
+    if (this.doesMethodExist('getBallotInfo')) {
+      return this.votingToChangeProxyInstance.methods.getBallotInfo(_id, _votingKey).call()
+    }
+    return this.votingToChangeProxyInstance.methods.votingState(_id).call()
   }
 
   hasAlreadyVoted(_id, votingKey) {
-    return this.votingToChangeProxyInstance.methods.hasAlreadyVoted(_id, votingKey).call();
+    return this.votingToChangeProxyInstance.methods.hasAlreadyVoted(_id, votingKey).call()
   }
 
   isValidVote(_id, votingKey) {
-    return this.votingToChangeProxyInstance.methods.isValidVote(_id, votingKey).call();
+    return this.votingToChangeProxyInstance.methods.isValidVote(_id, votingKey).call()
   }
 
   isActive(_id) {
-    return this.votingToChangeProxyInstance.methods.isActive(_id).call();
+    return this.votingToChangeProxyInstance.methods.isActive(_id).call()
   }
 
-  getProposedValue(_id) {
-    return this.votingToChangeProxyInstance.methods.getProposedValue(_id).call();
-  }
-
-  getContractType(_id) {
-    return this.votingToChangeProxyInstance.methods.getContractType(_id).call();
-  }
-
-  getMemo(_id) {
-    return this.votingToChangeProxyInstance.methods.getMemo(_id).call();
-  }
-
-  getMiningByVotingKey(_votingKey) {
-    return this.votingToChangeProxyInstance.methods.getMiningByVotingKey(_votingKey).call();
-  }
-
-  async getValidatorActiveBallots(_votingKey) {
-    let miningKey;
-    try {
-      miningKey = await this.getMiningByVotingKey(_votingKey);
-    } catch(e) {
-      miningKey = "0x0000000000000000000000000000000000000000";
+  canBeFinalizedNow(_id) {
+    if (this.doesMethodExist('canBeFinalizedNow')) {
+      return this.votingToChangeProxyInstance.methods.canBeFinalizedNow(_id).call()
     }
-    return await this.votingToChangeProxyInstance.methods.validatorActiveBallots(miningKey).call();
+    return null
   }
 
-  async getBallotLimit(_votingKey) {
-    const currentLimit = await this.votingToChangeProxyInstance.methods.getBallotLimitPerValidator().call();
-    return currentLimit - await this.getValidatorActiveBallots(_votingKey);
+  async getBallotLimit(_miningKey, _limitPerValidator) {
+    const _activeBallots = await this.votingToChangeProxyInstance.methods.validatorActiveBallots(_miningKey).call()
+    return _limitPerValidator - _activeBallots
   }
 }

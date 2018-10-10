@@ -1,111 +1,95 @@
-import Web3 from 'web3';
-import { networkAddresses } from './addresses';
-import helpers from "./helpers";
+import Web3 from 'web3'
+import { networkAddresses } from './addresses'
+import helpers from './helpers'
 
 export default class VotingToChangeKeys {
-  async init({web3, netId}) {
-    const {VOTING_TO_CHANGE_KEYS_ADDRESS} = networkAddresses(netId);
-    console.log('VotingToChangeKeys address', VOTING_TO_CHANGE_KEYS_ADDRESS);
-    let web3_10 = new Web3(web3.currentProvider);
+  async init({ web3, netId }) {
+    const { VOTING_TO_CHANGE_KEYS_ADDRESS } = networkAddresses(netId)
+    console.log('VotingToChangeKeys address', VOTING_TO_CHANGE_KEYS_ADDRESS)
+    const web3_10 = new Web3(web3.currentProvider)
 
-    const branch = helpers.getBranch(netId);
+    const branch = helpers.getBranch(netId)
 
-    let votingToChangeKeysABI = await helpers.getABI(branch, 'VotingToChangeKeys')
+    const votingToChangeKeysABI = await helpers.getABI(branch, 'VotingToChangeKeys')
 
-    this.votingToChangeKeysInstance = new web3_10.eth.Contract(votingToChangeKeysABI, VOTING_TO_CHANGE_KEYS_ADDRESS);
-    this.gasPrice = web3_10.utils.toWei('1', 'gwei');
+    this.votingToChangeKeysInstance = new web3_10.eth.Contract(votingToChangeKeysABI, VOTING_TO_CHANGE_KEYS_ADDRESS)
+    this.gasPrice = web3_10.utils.toWei('1', 'gwei')
+    this.address = VOTING_TO_CHANGE_KEYS_ADDRESS
+    this.instance = this.votingToChangeKeysInstance
   }
 
   //setters
-  createVotingForKeys({startTime, endTime, affectedKey, affectedKeyType, miningKey, ballotType, sender, memo}) {
-    return this.votingToChangeKeysInstance.methods.createVotingForKeys(startTime, endTime, affectedKey, affectedKeyType, miningKey, ballotType, memo).send({from: sender, gasPrice: this.gasPrice});
+  createBallot({ startTime, endTime, affectedKey, affectedKeyType, miningKey, ballotType, memo }) {
+    if (this.votingToChangeKeysInstance.methods.createBallot) {
+      return this.votingToChangeKeysInstance.methods
+        .createBallot(startTime, endTime, ballotType, affectedKeyType, memo, affectedKey, miningKey)
+        .encodeABI()
+    }
+    return this.votingToChangeKeysInstance.methods
+      .createVotingForKeys(startTime, endTime, affectedKey, affectedKeyType, miningKey, ballotType, memo)
+      .encodeABI()
   }
 
-  vote(_id, choice, sender) {
-    return this.votingToChangeKeysInstance.methods.vote(_id, choice).send({from: sender, gasPrice: this.gasPrice});
+  createBallotToAddNewValidator({ startTime, endTime, memo, affectedKey, newVotingKey, newPayoutKey }) {
+    return this.votingToChangeKeysInstance.methods
+      .createBallotToAddNewValidator(startTime, endTime, memo, affectedKey, newVotingKey, newPayoutKey)
+      .encodeABI()
   }
 
-  finalize(_id, sender) {
-    return this.votingToChangeKeysInstance.methods.finalize(_id).send({from: sender, gasPrice: this.gasPrice});
+  vote(_id, choice) {
+    return this.votingToChangeKeysInstance.methods.vote(_id, choice).encodeABI()
+  }
+
+  finalize(_id) {
+    return this.votingToChangeKeysInstance.methods.finalize(_id).encodeABI()
   }
 
   //getters
-  areBallotParamsValid({ballotType, affectedKey, affectedKeyType, miningKey}) {
-    return this.votingToChangeKeysInstance.methods.areBallotParamsValid(ballotType, affectedKey, affectedKeyType, miningKey).call();
+  areBallotParamsValid({ ballotType, affectedKey, affectedKeyType, miningKey }) {
+    if (!this.doesMethodExist('areBallotParamsValid')) {
+      return null
+    }
+    return this.votingToChangeKeysInstance.methods
+      .areBallotParamsValid(ballotType, affectedKey, affectedKeyType, miningKey)
+      .call()
   }
 
-  getStartTime(_id) {
-    return this.votingToChangeKeysInstance.methods.getStartTime(_id).call();
+  doesMethodExist(methodName) {
+    return this.votingToChangeKeysInstance && this.votingToChangeKeysInstance.methods[methodName]
   }
 
-  getEndTime(_id) {
-    return this.votingToChangeKeysInstance.methods.getEndTime(_id).call();
+  nextBallotId() {
+    return this.votingToChangeKeysInstance.methods.nextBallotId().call()
   }
 
-  votingState(_id) {
-    return this.votingToChangeKeysInstance.methods.votingState(_id).call();
-  }
-
-  getTotalVoters(_id) {
-    return this.votingToChangeKeysInstance.methods.getTotalVoters(_id).call();
-  }
-
-  getProgress(_id) {
-    return this.votingToChangeKeysInstance.methods.getProgress(_id).call();
-  }
-
-  getIsFinalized(_id) {
-    return this.votingToChangeKeysInstance.methods.getIsFinalized(_id).call();
+  getBallotInfo(_id, _votingKey) {
+    if (this.doesMethodExist('getBallotInfo')) {
+      return this.votingToChangeKeysInstance.methods.getBallotInfo(_id).call()
+    }
+    return this.votingToChangeKeysInstance.methods.votingState(_id).call()
   }
 
   hasAlreadyVoted(_id, votingKey) {
-    return this.votingToChangeKeysInstance.methods.hasAlreadyVoted(_id, votingKey).call();
+    return this.votingToChangeKeysInstance.methods.hasAlreadyVoted(_id, votingKey).call()
   }
 
   isValidVote(_id, votingKey) {
-    return this.votingToChangeKeysInstance.methods.isValidVote(_id, votingKey).call();
+    return this.votingToChangeKeysInstance.methods.isValidVote(_id, votingKey).call()
   }
 
   isActive(_id) {
-    return this.votingToChangeKeysInstance.methods.isActive(_id).call();
+    return this.votingToChangeKeysInstance.methods.isActive(_id).call()
   }
 
-  getBallotType(_id) {
-    return this.votingToChangeKeysInstance.methods.getBallotType(_id).call();
-  }
-
-  getAffectedKeyType(_id) {
-    return this.votingToChangeKeysInstance.methods.getAffectedKeyType(_id).call();
-  }
-
-  getAffectedKey(_id) {
-    return this.votingToChangeKeysInstance.methods.getAffectedKey(_id).call();
-  }
-
-  getMiningKey(_id) {
-    return this.votingToChangeKeysInstance.methods.getMiningKey(_id).call();
-  }
-
-  getMiningByVotingKey(_votingKey) {
-    return this.votingToChangeKeysInstance.methods.getMiningByVotingKey(_votingKey).call();
-  }
-
-  getMemo(_id) {
-    return this.votingToChangeKeysInstance.methods.getMemo(_id).call();
-  }
-
-  async getValidatorActiveBallots(_votingKey) {
-    let miningKey;
-    try {
-      miningKey = await this.getMiningByVotingKey(_votingKey);
-    } catch(e) {
-      miningKey = "0x0000000000000000000000000000000000000000";
+  canBeFinalizedNow(_id) {
+    if (this.doesMethodExist('canBeFinalizedNow')) {
+      return this.votingToChangeKeysInstance.methods.canBeFinalizedNow(_id).call()
     }
-    return await this.votingToChangeKeysInstance.methods.validatorActiveBallots(miningKey).call();
+    return null
   }
 
-  async getBallotLimit(_votingKey) {
-    const currentLimit = await this.votingToChangeKeysInstance.methods.getBallotLimitPerValidator().call();
-    return currentLimit - await this.getValidatorActiveBallots(_votingKey);
+  async getBallotLimit(_miningKey, _limitPerValidator) {
+    const _activeBallots = await this.votingToChangeKeysInstance.methods.validatorActiveBallots(_miningKey).call()
+    return _limitPerValidator - _activeBallots
   }
 }

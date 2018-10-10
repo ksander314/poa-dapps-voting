@@ -1,172 +1,69 @@
-import React from "react";
-import { observable, action } from "mobx";
-import { inject, observer } from "mobx-react";
-import { BallotCard } from "./BallotCard";
+import React from 'react'
+import { inject, observer } from 'mobx-react'
+import { BallotCard } from './BallotCard.jsx'
 
-@inject("commonStore", "contractsStore", "ballotStore", "routing")
+@inject('commonStore', 'routing')
 @observer
 export class BallotKeysCard extends React.Component {
-  @observable affectedKey;
-  @observable affectedKeyType;
-  @observable affectedKeyTypeDisplayName;
-  @observable ballotType;
-  @observable ballotTypeDisplayName;
-  @observable miningKey;
+  render() {
+    let { id, votingState, pos } = this.props
+    let affectedKeyClassName
+    let affectedKey = <p>{votingState.affectedKey}</p>
+    let newVotingKey
+    let newPayoutKey
+    let miningKeyDiv
 
-  @action("Get ballotTypeDisplayName")
-  getBallotTypeDisplayName(ballotType) {
-    const { ballotStore } = this.props;
-    switch(parseInt(ballotType, 10)) {
-      case ballotStore.KeysBallotType.add:
-        this.ballotTypeDisplayName = "add";
-        break;
-      case ballotStore.KeysBallotType.remove:
-        this.ballotTypeDisplayName = "remove";
-        break;
-      case ballotStore.KeysBallotType.swap:
-        this.ballotTypeDisplayName = "swap";
-        break;
-      default:
-        this.ballotTypeDisplayName =  "";
-        break;
-    }
-  }
-
-  @action("Get affectedKeyTypeDisplayName")
-  getAffectedKeyTypeDisplayName(affectedKeyType) {
-    const { ballotStore } = this.props;
-    switch(parseInt(affectedKeyType, 10)) {
-      case ballotStore.KeyType.mining:
-        this.affectedKeyTypeDisplayName = "mining";
-        break;
-      case ballotStore.KeyType.voting:
-        this.affectedKeyTypeDisplayName = "voting";
-        break;
-      case ballotStore.KeyType.payout:
-        this.affectedKeyTypeDisplayName = "payout";
-        break;
-      default:
-        this.affectedKeyTypeDisplayName =  "";
-        break;
-    }
-  }
-
-  @action("Get ballot type of keys ballot")
-  getBallotType = async () => {
-    const { contractsStore, id } = this.props;
-    let ballotType;
-    try {
-      ballotType = await contractsStore.votingToChangeKeys.getBallotType(id);
-    } catch(e) {
-      console.log(e.message);
-    }
-    this.ballotType = ballotType;
-    this.getBallotTypeDisplayName(ballotType);
-  }
-
-  @action("Get affected key type of keys ballot")
-  getAffectedKeyType = async () => {
-    const { contractsStore, id } = this.props;
-    let affectedKeyType;
-    try {
-      affectedKeyType = await contractsStore.votingToChangeKeys.getAffectedKeyType(id);
-    } catch(e) {
-      console.log(e.message);
-    }
-    this.affectedKeyType = affectedKeyType;
-    this.getAffectedKeyTypeDisplayName(affectedKeyType);
-  }
-
-
-  @action("Get affected key of keys ballot")
-  getAffectedKey = async () => {
-    const { contractsStore, id } = this.props;
-    let affectedKey;
-    try {
-      affectedKey = await contractsStore.votingToChangeKeys.getAffectedKey(id);
-    } catch (e) {
-      console.log(e.message);
-    }
-    this.affectedKey = affectedKey;
-  }
-  @action("Get mining key of keys ballot")
-  getMiningKey = async () => {
-    const { contractsStore, id } = this.props;
-    let miningKey, metadata;
-    try {
-      miningKey = await contractsStore.votingToChangeKeys.getMiningKey(id);
-    } catch(e) {
-      console.log(e.message);
-    }
-    try {
-      metadata = await contractsStore.getValidatorMetadata(miningKey);
-    } catch(e) {
-      console.log(e.message);
-    }
-    if (metadata) {
-      this.miningKey = `${metadata.lastName} ${miningKey}`;
+    if (votingState.isAddMining) {
+      affectedKeyClassName = 'ballots-about-i_key_wide'
+      if (votingState.newVotingKey || votingState.newPayoutKey) {
+        affectedKey = <p>Mining: {votingState.affectedKey}</p>
+        if (votingState.newVotingKey) newVotingKey = <p>Voting: {votingState.newVotingKey}</p>
+        if (votingState.newPayoutKey) newPayoutKey = <p>Payout: {votingState.newPayoutKey}</p>
+      }
     } else {
-      this.miningKey = `${miningKey}`;
+      affectedKeyClassName = 'ballots-about-i_key'
+      miningKeyDiv = (
+        <div className="ballots-about-i ballots-about-i_key">
+          <div className="ballots-about-td ballots-about-td-title">
+            <p className="ballots-about-i--title">Validator key</p>
+          </div>
+          <div className="ballots-about-td ballots-about-td-value">
+            <p>{votingState.miningKey}</p>
+          </div>
+        </div>
+      )
     }
-  }
 
-  constructor(props) {
-    super(props);
-    this.getAffectedKey();
-    this.getAffectedKeyType();
-    this.getBallotType();
-    this.getMiningKey();
-  }
-
-  isSearchPattern = () => {
-    let { commonStore } = this.props;
-    if (commonStore.searchTerm) {
-      const isMiningKeyPattern = String(this.miningKey).toLowerCase().includes(commonStore.searchTerm);
-      const isAffectedKeyPattern = String(this.affectedKey).toLowerCase().includes(commonStore.searchTerm);
-      const isAffectedKeyTypeDisplayNamePattern = String(this.affectedKeyTypeDisplayName).toLowerCase().includes(commonStore.searchTerm);
-      const isBallotTypeDisplayNamePattern = String(this.ballotTypeDisplayName).toLowerCase().includes(commonStore.searchTerm);
-      return  (isMiningKeyPattern || isAffectedKeyPattern || isAffectedKeyTypeDisplayNamePattern || isBallotTypeDisplayNamePattern);
-    }
-    return true;
-  }
-
-  render () {
-    let { id } = this.props;
     return (
-      <BallotCard votingType="votingToChangeKeys" id={id} isSearchPattern={this.isSearchPattern()}>
+      <BallotCard votingType="votingToChangeKeys" votingState={votingState} id={id} pos={pos}>
         <div className="ballots-about-i ballots-about-i_action">
-          <div className="ballots-about-td">
+          <div className="ballots-about-td ballots-about-td-title">
             <p className="ballots-about-i--title">Action</p>
           </div>
-          <div className="ballots-about-td">
-            <p>{this.ballotTypeDisplayName}</p>
+          <div className="ballots-about-td ballots-about-td-value">
+            <p>{votingState.ballotTypeDisplayName}</p>
           </div>
         </div>
         <div className="ballots-about-i ballots-about-i_type">
-          <div className="ballots-about-td">
+          <div className="ballots-about-td ballots-about-td-title">
             <p className="ballots-about-i--title">Key type</p>
           </div>
-          <div className="ballots-about-td">
-            <p>{this.affectedKeyTypeDisplayName}</p>
+          <div className="ballots-about-td ballots-about-td-value">
+            <p>{votingState.affectedKeyTypeDisplayName}</p>
           </div>
         </div>
-        <div className="ballots-about-i ballots-about-i_mining-key">
-          <div className="ballots-about-td">
+        <div className={`ballots-about-i ${affectedKeyClassName}`}>
+          <div className="ballots-about-td ballots-about-td-title">
             <p className="ballots-about-i--title">Affected key</p>
           </div>
-          <div className="ballots-about-td">
-            <p>{this.affectedKey}</p>
+          <div className="ballots-about-td ballots-about-td-value">
+            {affectedKey}
+            {newVotingKey}
+            {newPayoutKey}
           </div>
         </div>
-        <div className="ballots-about-i ballots-about-i_mining-key">
-          <div className="ballots-about-td">
-            <p className="ballots-about-i--title">Validator key</p>
-          </div>
-          <div className="ballots-about-td">
-            <p>{this.miningKey}</p>
-          </div>
-        </div>
+        {miningKeyDiv}
       </BallotCard>
-    );
+    )
   }
 }
